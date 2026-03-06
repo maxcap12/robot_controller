@@ -64,7 +64,10 @@ class RobotController:
         self.sgraphs_process = subprocess.Popen(
             [
                 "conda", "run", "-n", "quadruped_pympc_ros2_jazzy_env",
-                "ros2", "launch", "sgraphs", "--args"
+                "bash", "-c",
+                "source /s_graphs/install/setup.bash && "
+                "ros2 launch lidar_situational_graphs s_graphs_launch.py "
+                "compute_odom:=true lidar_topic:=/sim/point_cloud"
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -92,7 +95,7 @@ class RobotController:
 
                 keys.SET_VALUES: [
                     ("CreateRenderProduct.inputs:cameraPrim", f"{lidar_prim_path}/sensor"),
-                    ("Ros2Helper.inputs:topicName", "/point_cloud"),
+                    ("Ros2Helper.inputs:topicName", "/sim/point_cloud"),
                     ("Ros2Helper.inputs:frameId", "map"),
                     ("Ros2Helper.inputs:type", "point_cloud"),
                     ("Ros2Helper.inputs:nodeNamespace", ""),
