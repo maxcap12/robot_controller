@@ -26,7 +26,9 @@ class RobotController:
         self.articulation = None
         self.lidar = None
 
-        rclpy.init()
+        if not rclpy.ok():
+            rclpy.init()
+            
         self.node = JointNode()
         self.thread = Thread(target=rclpy.spin, args=(self.node,), daemon=True)
         self.thread.start()
@@ -44,8 +46,8 @@ class RobotController:
 
         self.mpc_process = subprocess.Popen(
             [
-                "conda", "run", "-n", "quadruped_pympc_ros2_jazzy_env",
-                "python3", "/Quadruped-PyMPC/robot_controller.py",
+                "conda", "run", "-n", "venv",
+                "python3", "/ws/src/Quadruped-PyMPC/robot_controller.py",
                 self.robot_name
             ],
             stdout=subprocess.PIPE,
@@ -63,9 +65,9 @@ class RobotController:
                         
         self.sgraphs_process = subprocess.Popen(
             [
-                "conda", "run", "-n", "quadruped_pympc_ros2_jazzy_env",
+                "conda", "run", "-n", "venv",
                 "bash", "-c",
-                "source /s_graphs/install/setup.bash && "
+                "source /ws/install/setup.bash && "
                 "ros2 launch lidar_situational_graphs s_graphs_launch.py "
                 "compute_odom:=true lidar_topic:=/sim/point_cloud"
             ],

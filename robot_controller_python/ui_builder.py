@@ -137,7 +137,6 @@ class UIBuilder:
                     default_value=False,
                     on_click_fn=self._update_use_sgraphs
                 )
-                self.wrapped_ui_elements.append(self._scenario_state_btn)
                 
                 self._select_map = CheckBox(
                     "Select Custom Map",
@@ -166,7 +165,7 @@ class UIBuilder:
                     physics_callback_fn=self._update_scenario,
                 )
                 self._scenario_state_btn.enabled = False
-
+                self.wrapped_ui_elements.append(self._scenario_state_btn)
                 
     ######################################################################################
     # Functions Below This Point Support The Provided Example And Can Be Replaced/Deleted
