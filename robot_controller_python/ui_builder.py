@@ -34,7 +34,7 @@ class UIBuilder:
         self.robot = None
         self.robot_controller = RobotController()
         self.use_sgraphs = False
-        self.custom_map = False
+        self._map_path = None
 
         # Frames are sub-windows that can contain multiple UI elements
         self.frames = []
@@ -111,6 +111,7 @@ class UIBuilder:
         """
         for ui_elem in self.wrapped_ui_elements:
             ui_elem.cleanup()
+        self.robot_controller.shutdown()
 
     def build_ui(self):
         """
@@ -138,14 +139,22 @@ class UIBuilder:
                     on_click_fn=self._update_use_sgraphs
                 )
                 
-                self._select_map = CheckBox(
-                    "Select Custom Map",
-                    default_value=False,
-                    on_click_fn=self._load_custom_map
-                )
+                with ui.HStack(height=0, spacing=5):
+                    ui.Label("Map File:", width=70, style=get_style())
+                    self._map_path_label = ui.Label(
+                        "No file selected",
+                        width=ui.Fraction(1),
+                        style=get_style(),
+                        word_wrap=True,
+                    )
+                    self._select_map = ui.Button(
+                        "Browse...",
+                        width=80,
+                        clicked_fn=self._open_file_picker,
+                    )
                 
                 self._load_btn = LoadButton(
-                    "Add Button", "ADD", setup_scene_fn=self._setup_robot
+                    "Add Button", "ADD", setup_scene_fn=self._setup_scene
                 )
                 self._load_btn.set_world_settings(physics_dt=1 / 60.0, rendering_dt=1 / 60.0)
                 self.wrapped_ui_elements.append(self._load_btn)
@@ -177,8 +186,9 @@ class UIBuilder:
     def _on_robot_selection(self, selection: str):
         self.robot_name = selection
 
-    def _setup_robot(self):
-        self.robot = self.robot_controller.load_robot(self.robot_name, self.use_sgraphs)
+    def _setup_scene(self):
+        pos, ori = load_map(self._map_path)
+        self.robot = self.robot_controller.load_robot(self.robot_name, self.use_sgraphs, pos, ori)
         world = World.instance()
         world.scene.add(self.robot)
 
@@ -205,6 +215,27 @@ class UIBuilder:
     def _update_use_sgraphs(self, use_sgraphs):
         self.use_sgraphs = use_sgraphs
         
-    def _load_custom_map(self, map_path):
-        self.custom_map = map_path
-        load_map(map_path)
+    def _open_file_picker(self):
+        from omni.kit.window.filepicker import FilePickerDialog
+
+        def on_apply(filename, dirname):
+            path = f"{dirname}/{filename}" if dirname else filename
+            self._map_path_label.text = path
+            self._map_path = path
+            self._file_picker_dialog.hide()
+
+        def on_cancel(*_):
+            self._file_picker_dialog.hide()
+
+        self._file_picker_dialog = FilePickerDialog(
+            "Select Map File",
+            apply_button_label="Select",
+            click_apply_handler=on_apply,
+            click_cancel_handler=on_cancel,
+            file_extension_options=[
+                ("*.yaml", "YAML files"),
+                ("*.yml", "YML files"),
+                ("*", "All files"),
+            ],
+        )
+        self._file_picker_dialog.show()
