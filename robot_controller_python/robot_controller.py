@@ -3,8 +3,10 @@ from isaacsim.core.utils.stage import add_reference_to_stage
 from isaacsim.core.prims import SingleArticulation as Articulation
 from isaacsim.core.utils.types import ArticulationAction
 from pxr import PhysxSchema, Gf, UsdGeom
+from omni.physx.scripts.physicsUtils import set_or_add_translate_op, set_or_add_orient_op
 import omni.usd
 import omni.graph.core as og
+import omni.replicator.core as rep
 
 import rclpy
 from threading import Thread
@@ -37,12 +39,26 @@ class RobotController:
         self.sgraphs_process = None
         self.use_sgraphs = False
 
+    def _kill_process(self, process):
+        if process is None or process.poll() is not None:
+            return
+        try:
+            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+            process.wait()
+        except ProcessLookupError:
+            pass
+
+    def shutdown(self):
+        self._kill_process(self.mpc_process)
+        self.mpc_process = None
+        self._kill_process(self.sgraphs_process)
+        self.sgraphs_process = None
+
     def launch_mpc_node(self):
-        if self.mpc_process is not None:
-            if self.mpc_process.poll() is None:
-                print("problem", self.mpc_process.poll())
-        
-            os.killpg(os.getpgid(self.mpc_process.pid), signal.SIGTERM)
+        self._kill_process(self.mpc_process)
 
         self.mpc_process = subprocess.Popen(
             [
@@ -60,9 +76,8 @@ class RobotController:
         print("status:", self.mpc_process.poll())
 
     def launch_sgraphs(self):
-        if self.sgraphs_process is not None:
-            os.killpg(os.getpgid(self.sgraphs_process.pid), signal.SIGTERM)
-                        
+        self._kill_process(self.sgraphs_process)
+
         self.sgraphs_process = subprocess.Popen(
             [
                 "conda", "run", "-n", "venv",
@@ -78,39 +93,41 @@ class RobotController:
         )
 
     def create_graph(self, lidar_prim_path):
-        keys = og.Controller.Keys
+        sensor_prim_path = f"{lidar_prim_path}/sensor"
+        
+        self._lidar_render_product = rep.create.render_product(
+            sensor_prim_path,
+            resolution=(1, 1),
+            render_vars=["GenericModelOutput", "RtxSensorMetadata"],
+        )
 
-        graph_handle, node_list, _, _ = og.Controller.edit(
+        keys = og.Controller.Keys
+        og.Controller.edit(
             {"graph_path": f"{lidar_prim_path}/pc_publisher", "evaluator_name": "execution"},
             {
                 keys.CREATE_NODES: [
                     ("OnPlaybackTick", "omni.graph.action.OnPlaybackTick"),
-                    ("CreateRenderProduct", "isaacsim.core.nodes.IsaacCreateRenderProduct"),
-                    ("Ros2Helper", "isaacsim.ros2.bridge.ROS2RTXLidarHelper")
+                    ("Ros2Helper", "isaacsim.ros2.bridge.ROS2RtxLidarHelper"),
                 ],
-
-                keys.CONNECT: [
-                    ("OnPlaybackTick.outputs:tick", "CreateRenderProduct.inputs:execIn"),
-                    ("CreateRenderProduct.outputs:execOut", "Ros2Helper.inputs:execIn"),
-                    ("CreateRenderProduct.outputs:renderProductPath", "Ros2Helper.inputs:renderProductPath"),
-                ],
-
                 keys.SET_VALUES: [
-                    ("CreateRenderProduct.inputs:cameraPrim", f"{lidar_prim_path}/sensor"),
+                    ("Ros2Helper.inputs:renderProductPath", self._lidar_render_product.path),
                     ("Ros2Helper.inputs:topicName", "/sim/point_cloud"),
                     ("Ros2Helper.inputs:frameId", "map"),
                     ("Ros2Helper.inputs:type", "point_cloud"),
                     ("Ros2Helper.inputs:nodeNamespace", ""),
                     ("Ros2Helper.inputs:fullScan", True),
-                ]
+                ],
+                keys.CONNECT: [
+                    ("OnPlaybackTick.outputs:tick", "Ros2Helper.inputs:execIn"),
+                ],
             }
         )
 
-    def load_robot(self, robot, use_sgraphs):
+    def load_robot(self, robot, use_sgraphs, pos, ori):
         self.use_sgraphs = use_sgraphs
+        stage = omni.usd.get_context().get_stage()
         
         if self.robot_name != robot:
-            stage = omni.usd.get_context().get_stage()
             stage.RemovePrim(f"/{self.robot_name}")
             
             self.robot_name = robot
@@ -120,6 +137,10 @@ class RobotController:
             add_reference_to_stage(path_to_robot_usd, robot_prim_path)
 
             prim = stage.GetPrimAtPath(robot_prim_path)
+
+            xformable = UsdGeom.Xformable(prim)
+            set_or_add_translate_op(xformable, Gf.Vec3f(pos[0], pos[1], pos[2]))
+            set_or_add_orient_op(xformable, Gf.Quatf(ori[3], ori[0], ori[1], ori[2]))
 
             physx_api = PhysxSchema.PhysxArticulationAPI.Apply(prim)
             physx_api.GetSolverPositionIterationCountAttr().Set(32)
