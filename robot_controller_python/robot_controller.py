@@ -61,11 +61,11 @@ class RobotController:
         self._kill_process(self.mpc_process)
 
         self.mpc_process = subprocess.Popen(
-            [
-                "conda", "run", "-n", "venv",
-                "python3", "/ws/src/Quadruped-PyMPC/robot_controller.py",
-                self.robot_name
-            ],
+            "echo 'y' | conda run -n venv bash -c "
+            "'source /opt/ros/jazzy/setup.bash && "
+            "export LD_LIBRARY_PATH=/ws/src/Quadruped-PyMPC/quadruped_pympc/acados/lib:$LD_LIBRARY_PATH && "
+            f"python3 /ws/src/Quadruped-PyMPC/robot_controller.py {self.robot_name}'",
+            shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
