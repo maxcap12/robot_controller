@@ -3,7 +3,7 @@ from .robot_controller import RobotController
 from .map_creator import load_map
 
 
-class ExperimentRunner:
+class HeadlessRunner:
     def __init__(self, physics_dt=1/60., rendering_dt=1/60.):
         self.world = World(
             stage_units_in_meters=1.0,
