@@ -9,6 +9,7 @@ import omni.graph.core as og
 import omni.replicator.core as rep
 
 import rclpy
+from rclpy.executors import SingleThreadedExecutor
 from threading import Thread
 import subprocess
 import os
@@ -32,7 +33,9 @@ class RobotController:
             rclpy.init()
             
         self.node = JointNode()
-        self.thread = Thread(target=rclpy.spin, args=(self.node,), daemon=True)
+        self.executor = SingleThreadedExecutor()
+        self.executor.add_node(self.node)
+        self.thread = Thread(target=self.executor.spin, daemon=True)
         self.thread.start()
 
         self.mpc_process = None
