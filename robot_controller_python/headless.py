@@ -1,4 +1,6 @@
 from isaacsim.core.api.world import World
+from pxr import UsdLux, UsdGeom, Sdf, Gf
+import omni.usd
 from .robot_controller import RobotController
 from .map_creator import load_map
 
@@ -22,6 +24,16 @@ class HeadlessRunner:
     def step(self, render=True):
         self.controller.update(self.world.get_physics_dt())
         self.world.step(render=render)
+
+    def add_ground(self):
+        self.world.scene.add_default_ground_plane()
+
+    def add_light(self):
+        stage = omni.usd.get_context().get_stage()
+        light = UsdLux.DistantLight.Define(stage, Sdf.Path("/World/DistantLight")
+        light.CreateIntensityAttr(3000.0)
+        light.CreateColorAttr(Gf.Vec3f(1.0, 1.0, 1.0))
+        UsdGeom.Xformable(light.GetPrim()).AddRotateXYZOp().Set(Gf.Vec3f(-45.0, 0.0, 0.0))
 
     def run(self, duration_s, render=True):
         n = int(duration_s / self.world.get_physics_dt())
