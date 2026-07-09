@@ -6,6 +6,8 @@ import omni.kit.app
 import carb
 from .robot_controller import RobotController
 from .map_creator import load_map
+import time
+import time
 
 
 class HeadlessRunner:
@@ -82,13 +84,19 @@ class HeadlessRunner:
         )
         return best["z"]
 
-    def run(self, duration_s, render=True):
+    def run(self, duration_s, render=True, fps_limit=None):
         n = int(duration_s / self.world.get_physics_dt())
         self.controller.play()
-      
+
+        last_frame = time.time()
+        
         for _ in range(n):
             self.step(render=render)
-          
+
+            if fps_limit is not None:
+                time.sleep(max(0, (1 / fps_limit) - (time.time() - last_frame)))
+                last_frame = time.time()
+                
         self.controller.pause()
 
     def shutdown(self):
