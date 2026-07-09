@@ -63,12 +63,16 @@ class RobotController:
     def launch_mpc_node(self):
         self._kill_process(self.mpc_process)
 
+        env = os.environ.copy()
+        env.pop("PYTHONPATH", None)
+        env.pop("PYTHONHOME", None)
+        
         self.mpc_process = subprocess.Popen(
-            "echo 'y' | conda run -n venv bash -c "
-            "'source /opt/ros/jazzy/setup.bash && "
-            "export LD_LIBRARY_PATH=/ws/src/Quadruped-PyMPC/quadruped_pympc/acados/lib:$LD_LIBRARY_PATH && "
+            "yes | conda run --no-capture-output -n venv bash -c "
+            "'export LD_LIBRARY_PATH=/ws/src/Quadruped-PyMPC/quadruped_pympc/acados/lib:$LD_LIBRARY_PATH && "
             f"python3 /ws/src/Quadruped-PyMPC/robot_controller.py {self.robot_name}'",
             shell=True,
+            env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -81,6 +85,10 @@ class RobotController:
     def launch_sgraphs(self):
         self._kill_process(self.sgraphs_process)
 
+        env = os.environ.copy()
+        env.pop("PYTHONPATH", None)
+        env.pop("PYTHONHOME", None)
+
         self.sgraphs_process = subprocess.Popen(
             [
                 "conda", "run", "-n", "venv",
@@ -89,6 +97,7 @@ class RobotController:
                 "ros2 launch lidar_situational_graphs s_graphs_launch.py "
                 "compute_odom:=true lidar_topic:=/sim/point_cloud"
             ],
+            env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
