@@ -36,7 +36,7 @@ class HeadlessRunner:
 
     def add_light(self):
         stage = omni.usd.get_context().get_stage()
-        light = UsdLux.DistantLight.Define(stage, Sdf.Path("/World/DistantLight")
+        light = UsdLux.DistantLight.Define(stage, Sdf.Path("/World/DistantLight"))
         light.CreateIntensityAttr(3000.0)
         light.CreateColorAttr(Gf.Vec3f(1.0, 1.0, 1.0))
         UsdGeom.Xformable(light.GetPrim()).AddRotateXYZOp().Set(Gf.Vec3f(-45.0, 0.0, 0.0))
