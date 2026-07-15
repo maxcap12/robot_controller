@@ -68,7 +68,7 @@ class RobotController:
         env.pop("PYTHONHOME", None)
         
         self.mpc_process = subprocess.Popen(
-            "yes | conda run --no-capture-output -n venv bash -c "
+            "yes | /opt/conda/bin/conda run --no-capture-output -n venv bash -c "
             "'export LD_LIBRARY_PATH=/ws/src/Quadruped-PyMPC/quadruped_pympc/acados/lib:$LD_LIBRARY_PATH && "
             f"python3 /ws/src/Quadruped-PyMPC/robot_controller.py {self.robot_name}'",
             shell=True,
