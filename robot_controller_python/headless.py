@@ -23,9 +23,9 @@ class HeadlessRunner:
         self.controller = RobotController()
         self.robot = None
 
-    def setup_scene(self, robot_name, use_sgraphs=False, map_path=None):
+    def setup_scene(self, robot_name, use_sgraphs=False, map_path=None, sgraphs_kargs={}):
         pos, ori = load_map(map_path)
-        self.robot = self.controller.load_robot(robot_name, use_sgraphs, pos, ori)
+        self.robot = self.controller.load_robot(robot_name, use_sgraphs, pos, ori, sgraphs_kargs)
         self.world.scene.add(self.robot)
         self.world.reset()
 

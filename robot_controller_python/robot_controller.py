@@ -41,6 +41,7 @@ class RobotController:
         self.mpc_process = None
         self.sgraphs_process = None
         self.use_sgraphs = False
+        self.sgraphs_kargs = {}
 
     def _kill_process(self, process):
         if process is None or process.poll() is not None:
@@ -93,7 +94,8 @@ class RobotController:
             [
                 "bash -c "
                 "'source /ros_ws/install/setup.bash && "
-                "ros2 launch lidar_situational_graphs s_graphs_launch.py'"
+                "ros2 launch lidar_situational_graphs s_graphs_launch.py "
+                f"{' '.join([f'{key}:={value}' for key, value in self.sgraphs_kargs.items()])}'"
             ],
             shell=True,
             env=env,
@@ -134,8 +136,9 @@ class RobotController:
             }
         )
 
-    def load_robot(self, robot, use_sgraphs, pos, ori):
+    def load_robot(self, robot, use_sgraphs, pos, ori, sgraphs_kargs):
         self.use_sgraphs = use_sgraphs
+        self.sgraphs_kargs = sgraphs_kargs
         stage = omni.usd.get_context().get_stage()
         
         if self.robot_name != robot:
@@ -160,7 +163,6 @@ class RobotController:
             self.articulation = Articulation(robot_prim_path)
 
         if use_sgraphs:
-            self.use_sgraphs = True
             lidar_path = get_assets_root_path() + "/Isaac/Sensors/Ouster/OS1/OS1.usd"
             lidar_prim_path = f"/{self.robot_name}/body/lidar"
             add_reference_to_stage(lidar_path, lidar_prim_path)
