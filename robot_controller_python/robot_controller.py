@@ -159,6 +159,7 @@ class RobotController:
             self.articulation = Articulation(robot_prim_path)
 
         if use_sgraphs:
+            self.use_sgraphs = True
             lidar_path = get_assets_root_path() + "/Isaac/Sensors/Ouster/OS1/OS1.usd"
             lidar_prim_path = f"/{self.robot_name}/body/lidar"
             add_reference_to_stage(lidar_path, lidar_prim_path)
@@ -188,7 +189,17 @@ class RobotController:
             self.launch_mpc_node()
 
         angles, velocities = self.node.get_joint_attributes()
-        
+
+        if self.use_sgraphs and (self.sgraphs_process is None or self.sgraphs_process.poll() is not None):
+            print("Restarting S-Graphs node...", self.sgraphs_process, self.sgraphs_process.poll())
+
+            out, err = self.sgraphs_process.communicate()
+            print("STDOUT:", out)
+            print("STDERR:", err)
+            print("Return code:", self.sgraphs_process.returncode)
+
+            self.launch_sgraphs()
+            
         if angles is None or velocities is None: 
             print("aborting update, no joint data yet")
             return
