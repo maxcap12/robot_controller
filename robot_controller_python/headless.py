@@ -43,7 +43,7 @@ class HeadlessRunner:
         light.CreateColorAttr(Gf.Vec3f(1.0, 1.0, 1.0))
         UsdGeom.Xformable(light.GetPrim()).AddRotateXYZOp().Set(Gf.Vec3f(-45.0, 0.0, 0.0))
 
-    def correct_robot_position(self, clearence=None, start_offset=10.0, max_distance=50.0):
+    def correct_robot_position(self, clearance=None, start_offset=10.0, max_distance=50.0):
         if self.robot is None: return
 
         robot_name = self.controller.robot_name
@@ -57,8 +57,8 @@ class HeadlessRunner:
 
         if surface_z is None: return
 
-        if clearence is None:
-            clearence = self.SPAWN_CLEARANCE.get(robot_name, self.DEFAULT_CLEARANCE)
+        if clearance is None:
+            clearance = self.SPAWN_CLEARANCE.get(robot_name, self.DEFAULT_CLEARANCE)
 
         new_pos = [x, y, surface_z + clearance]
         self.robot.set_world_pose(position=new_pos, orientation=orientation)
