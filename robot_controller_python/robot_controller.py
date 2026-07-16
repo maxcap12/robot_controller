@@ -91,8 +91,9 @@ class RobotController:
 
         self.sgraphs_process = subprocess.Popen(
             [
-                "source /ros_ws/install/setup.bash && "
-                "ros2 launch lidar_situational_graphs s_graphs_launch.py"
+                "bash -c "
+                "'source /ros_ws/install/setup.bash && "
+                "ros2 launch lidar_situational_graphs s_graphs_launch.py'"
             ],
             shell=True,
             env=env,
