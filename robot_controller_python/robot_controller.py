@@ -105,9 +105,9 @@ class RobotController:
             preexec_fn=os.setsid
         )
 
-    def create_graph(self, lidar_prim_path):
+    def create_graph(self, base_prim_path, lidar_prim_path, lidar_frame, pointcloud_topic):
         sensor_prim_path = f"{lidar_prim_path}/sensor"
-        
+
         self._lidar_render_product = rep.create.render_product(
             sensor_prim_path,
             resolution=(1, 1),
@@ -120,23 +120,32 @@ class RobotController:
             {
                 keys.CREATE_NODES: [
                     ("OnPlaybackTick", "omni.graph.action.OnPlaybackTick"),
+                    ("SimTime", "isaacsim.core.nodes.IsaacReadSimulationTime"),
                     ("Ros2Helper", "isaacsim.ros2.bridge.ROS2RtxLidarHelper"),
+                    ("TfPublisher", "isaacsim.ros2.bridge.ROS2PublishTransformTree"),
                 ],
                 keys.SET_VALUES: [
                     ("Ros2Helper.inputs:renderProductPath", self._lidar_render_product.path),
-                    ("Ros2Helper.inputs:topicName", "/sim/point_cloud"),
-                    ("Ros2Helper.inputs:frameId", "map"),
+                    ("Ros2Helper.inputs:topicName", pointcloud_topic),
+                    ("Ros2Helper.inputs:frameId", lidar_frame),
                     ("Ros2Helper.inputs:type", "point_cloud"),
                     ("Ros2Helper.inputs:nodeNamespace", ""),
                     ("Ros2Helper.inputs:fullScan", True),
+                    ("TfPublisher.inputs:topicName", "/tf"),
+                    ("TfPublisher.inputs:nodeNamespace", ""),
+                    ("TfPublisher.inputs:parentPrim", [base_prim_path]),
+                    ("TfPublisher.inputs:targetPrims", [lidar_prim_path]),
                 ],
                 keys.CONNECT: [
                     ("OnPlaybackTick.outputs:tick", "Ros2Helper.inputs:execIn"),
+                    ("OnPlaybackTick.outputs:tick", "TfPublisher.inputs:execIn"),
+                    ("SimTime.outputs:simulationTime", "TfPublisher.inputs:timeStamp"),
                 ],
             }
         )
 
-    def load_robot(self, robot, use_sgraphs, pos, ori, sgraphs_kargs):
+    def load_robot(self, robot, use_sgraphs, pos, ori, sgraphs_kargs={},
+                   base_frame="base_link", lidar_frame="lidar", pointcloud_topic="/sim/point_cloud"):
         self.use_sgraphs = use_sgraphs
         self.sgraphs_kargs = sgraphs_kargs
         stage = omni.usd.get_context().get_stage()
@@ -163,8 +172,14 @@ class RobotController:
             self.articulation = Articulation(robot_prim_path)
 
         if use_sgraphs:
+            self.sgraphs_kargs["lidar_topic"] = pointcloud_topic
+            self.sgraphs_kargs["base_frame"] = base_frame
+
             lidar_path = get_assets_root_path() + "/Isaac/Sensors/Ouster/OS1/OS1.usd"
-            lidar_prim_path = f"/{self.robot_name}/body/lidar"
+            base_prim_path = f"/{self.robot_name}/body/{base_frame}"
+            lidar_prim_path = f"{base_prim_path}/{lidar_frame}"
+
+            UsdGeom.Xform.Define(stage, base_prim_path)
             add_reference_to_stage(lidar_path, lidar_prim_path)
             self.lidar = stage.GetPrimAtPath(lidar_prim_path)
 
@@ -174,7 +189,7 @@ class RobotController:
                 xform.GetTranslateOp().Set(Gf.Vec3d(-0.11036, 0.0, 0.08087))
                 xform.GetRotateXYZOp().Set(Gf.Vec3d(0.0, 0.0, 0.0))
 
-            self.create_graph(lidar_prim_path)
+            self.create_graph(base_prim_path, lidar_prim_path, lidar_frame, pointcloud_topic)
             self.launch_sgraphs()
 
         self.launch_mpc_node()
@@ -213,7 +228,6 @@ class RobotController:
         
         action = ArticulationAction(
             joint_positions=angles,
-            # joint_velocities=velocities
         )
         
         self.articulation.apply_action(action)

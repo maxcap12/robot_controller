@@ -20,7 +20,7 @@ from isaacsim.core.prims import SingleArticulation
 from isaacsim.core.api.world import World
 from isaacsim.core.utils.prims import get_prim_object_type
 from isaacsim.core.utils.types import ArticulationAction
-from isaacsim.gui.components.element_wrappers import CollapsableFrame, DropDown, FloatField, TextBlock, StateButton, CheckBox
+from isaacsim.gui.components.element_wrappers import CollapsableFrame, DropDown, FloatField, TextBlock, StateButton, CheckBox, StringField
 from isaacsim.examples.extension.core_connectors import LoadButton, ResetButton
 from isaacsim.gui.components.ui_utils import get_style
 from omni.usd import StageEventType
@@ -138,7 +138,28 @@ class UIBuilder:
                     default_value=False,
                     on_click_fn=self._update_use_sgraphs
                 )
-                
+
+                self._base_frame_field = StringField(
+                    "Base Frame",
+                    default_value="base_link",
+                    tooltip="TF frame name for the robot base (S-Graphs base_link_frame)",
+                )
+                self.wrapped_ui_elements.append(self._base_frame_field)
+
+                self._lidar_frame_field = StringField(
+                    "Lidar Frame",
+                    default_value="lidar",
+                    tooltip="TF frame name and point cloud frame_id for the lidar sensor",
+                )
+                self.wrapped_ui_elements.append(self._lidar_frame_field)
+
+                self._pointcloud_topic_field = StringField(
+                    "Point Cloud Topic",
+                    default_value="/sim/point_cloud",
+                    tooltip="ROS2 topic the lidar point cloud is published on",
+                )
+                self.wrapped_ui_elements.append(self._pointcloud_topic_field)
+
                 with ui.HStack(height=0, spacing=5):
                     ui.Label("Map File:", width=70, style=get_style())
                     self._map_path_label = ui.Label(
@@ -188,7 +209,12 @@ class UIBuilder:
 
     def _setup_scene(self):
         pos, ori = load_map(self._map_path)
-        self.robot = self.robot_controller.load_robot(self.robot_name, self.use_sgraphs, pos, ori)
+        self.robot = self.robot_controller.load_robot(
+            self.robot_name, self.use_sgraphs, pos, ori,
+            base_frame=self._base_frame_field.get_value(),
+            lidar_frame=self._lidar_frame_field.get_value(),
+            pointcloud_topic=self._pointcloud_topic_field.get_value(),
+        )
         world = World.instance()
         world.scene.add(self.robot)
 
