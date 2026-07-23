@@ -24,11 +24,13 @@ class HeadlessRunner:
         self.robot = None
 
     def setup_scene(self, robot_name, use_sgraphs=False, map_path=None, sgraphs_kargs={},
-                    base_frame="base_link", lidar_frame="lidar", pointcloud_topic="/sim/point_cloud"):
+                    base_frame="base_link", lidar_frame="lidar", pointcloud_topic="/sim/point_cloud",
+                    publish_lidar=False):
         pos, ori = load_map(map_path)
         self.robot = self.controller.load_robot(
             robot_name, use_sgraphs, pos, ori, sgraphs_kargs,
             base_frame=base_frame, lidar_frame=lidar_frame, pointcloud_topic=pointcloud_topic,
+            publish_lidar=publish_lidar,
         )
         self.world.scene.add(self.robot)
         self.world.reset()

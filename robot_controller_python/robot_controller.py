@@ -145,7 +145,8 @@ class RobotController:
         )
 
     def load_robot(self, robot, use_sgraphs, pos, ori, sgraphs_kargs={},
-                   base_frame="base_link", lidar_frame="lidar", pointcloud_topic="/sim/point_cloud"):
+                   base_frame="base_link", lidar_frame="lidar", pointcloud_topic="/sim/point_cloud",
+                   publish_lidar=False):
         self.use_sgraphs = use_sgraphs
         self.sgraphs_kargs = sgraphs_kargs
         stage = omni.usd.get_context().get_stage()
@@ -171,10 +172,7 @@ class RobotController:
 
             self.articulation = Articulation(robot_prim_path)
 
-        if use_sgraphs:
-            self.sgraphs_kargs["lidar_topic"] = pointcloud_topic
-            self.sgraphs_kargs["base_frame"] = base_frame
-
+        if use_sgraphs or publish_lidar:
             lidar_path = get_assets_root_path() + "/Isaac/Sensors/Ouster/OS1/OS1.usd"
             base_prim_path = f"/{self.robot_name}/body/{base_frame}"
             lidar_prim_path = f"{base_prim_path}/{lidar_frame}"
@@ -190,6 +188,10 @@ class RobotController:
                 xform.GetRotateXYZOp().Set(Gf.Vec3d(0.0, 0.0, 0.0))
 
             self.create_graph(base_prim_path, lidar_prim_path, lidar_frame, pointcloud_topic)
+
+        if use_sgraphs:
+            self.sgraphs_kargs["lidar_topic"] = pointcloud_topic
+            self.sgraphs_kargs["base_frame"] = base_frame
             self.launch_sgraphs()
 
         self.launch_mpc_node()

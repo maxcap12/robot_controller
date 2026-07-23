@@ -34,6 +34,7 @@ class UIBuilder:
         self.robot = None
         self.robot_controller = RobotController()
         self.use_sgraphs = False
+        self.publish_lidar = False
         self._map_path = None
 
         # Frames are sub-windows that can contain multiple UI elements
@@ -139,6 +140,12 @@ class UIBuilder:
                     on_click_fn=self._update_use_sgraphs
                 )
 
+                self._publish_lidar_checkbox = CheckBox(
+                    "Publish Lidar",
+                    default_value=False,
+                    on_click_fn=self._update_publish_lidar
+                )
+
                 self._base_frame_field = StringField(
                     "Base Frame",
                     default_value="base_link",
@@ -214,6 +221,7 @@ class UIBuilder:
             base_frame=self._base_frame_field.get_value(),
             lidar_frame=self._lidar_frame_field.get_value(),
             pointcloud_topic=self._pointcloud_topic_field.get_value(),
+            publish_lidar=self.publish_lidar,
         )
         world = World.instance()
         world.scene.add(self.robot)
@@ -240,7 +248,10 @@ class UIBuilder:
 
     def _update_use_sgraphs(self, use_sgraphs):
         self.use_sgraphs = use_sgraphs
-        
+
+    def _update_publish_lidar(self, publish_lidar):
+        self.publish_lidar = publish_lidar
+
     def _open_file_picker(self):
         from omni.kit.window.filepicker import FilePickerDialog
 
