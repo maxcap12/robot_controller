@@ -7,7 +7,6 @@ import carb
 from .robot_controller import RobotController
 from .map_creator import load_map
 import time
-import time
 
 
 class HeadlessRunner:
